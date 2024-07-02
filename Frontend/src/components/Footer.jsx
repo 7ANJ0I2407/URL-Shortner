@@ -18,7 +18,7 @@ const Footer = () => {
             </Typography>
             <Typography variant="body2" color="text.secondary" align="center">
                 {'Copyright © '}
-                <a color="inherit" href="https://github.com/7ANJOI">
+                <a color="inherit" href="https://github.com/7ANJ0I2407">
                     SANJOY
                 </a>{' '}
                 {new Date().getFullYear()}
