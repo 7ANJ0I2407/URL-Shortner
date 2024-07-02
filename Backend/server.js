@@ -1,46 +1,78 @@
-import express from "express";
+import express from 'express';
 import { nanoid } from 'nanoid';
 import cors from 'cors';
-import { json } from 'express';
+import 'dotenv/config';
+import connectDB from './Connection/DB.js';
+import Url from './Schemas/MongoDB.js';
+import { validateUrl } from './utils/validateUrl.js';
 
 const app = express();
-const port = 8080; // Changed port to a safe one
+const port = process.env.PORT || 8080;
 
-// In-memory storage
-const urlDatabase = {};
+// Connect
+connectDB();
 
+// Middleware
 app.use(cors());
-app.use(json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Routes
 app.get('/', (req, res) => {
     res.send('Hello World');
 });
 
-app.post('/shorten', (req, res) => {
+app.post('/shorten', async (req, res) => {
     let { originalUrl } = req.body;
-    if(!originalUrl) {
+    if (!originalUrl) {
         return res.status(400).send('Missing URL');
     }
-    // Ensure the URL has a valid scheme
+
     if (!/^https?:\/\//i.test(originalUrl)) {
         originalUrl = 'http://' + originalUrl;
     }
 
-    const shortId = nanoid(5);
-    urlDatabase[shortId] = originalUrl;
-    res.json({ shortUrl: `http://localhost:${port}/${shortId}` });
-});
+    if (!validateUrl(originalUrl)) {
+        return res.status(400).send('Invalid URL');
+    }
 
-app.get('/:shortId', (req, res) => {
-    const { shortId } = req.params;
-    const originalUrl = urlDatabase[shortId];
-    if (originalUrl) {
-        res.redirect(originalUrl);
-    } else {
-        res.status(404).send('URL not found');
+    try {
+        // Check if already exists
+        let url = await Url.findOne({ originalUrl });
+        if (url) {
+            return res.json({ shortUrl: `${req.protocol}://${req.get('host')}/${url.shortId}` });
+        }
+
+        // If not, create a new
+        const shortId = nanoid(5);
+        url = new Url({
+            originalUrl,
+            shortId
+        });
+        await url.save();
+        res.json({ shortUrl: `${req.protocol}://${req.get('host')}/${shortId}` });
+    } catch (error) {
+        console.error('Error saving to database:', error);
+        res.status(500).send('Server error');
     }
 });
 
+app.get('/:shortId', async (req, res) => {
+    const { shortId } = req.params;
+    try {
+        const url = await Url.findOne({ shortId });
+        if (url) {
+            res.redirect(url.originalUrl);
+        } else {
+            res.status(404).send('URL not found');
+        }
+    } catch (error) {
+        console.error('Error retrieving from database:', error);
+        res.status(500).send('Server error');
+    }
+});
+
+// Start the server
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running on port ${port}`);
 });
