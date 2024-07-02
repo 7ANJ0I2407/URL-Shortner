@@ -21,7 +21,7 @@ function App() {
         }
 
         try {
-            const response = await axios.post("http://localhost:8080/shorten/", { originalUrl });
+            const response = await axios.post("https://srt-url-53da.onrender.com/shorten", { originalUrl });
             setShortUrl(response.data.shortUrl);
             setAlertMessage(''); // Clear any previous alert messages
         } catch (error) {
