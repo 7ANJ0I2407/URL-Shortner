@@ -4,12 +4,13 @@ import cors from 'cors';
 import 'dotenv/config';
 import connectDB from './Connection/DB.js';
 import Url from './Schemas/MongoDB.js';
-import { validateUrl } from './utils/validateUrl.js';
+import { validateUrl } from './utils/validateUrl.js'; 
 
 const app = express();
 const port = process.env.PORT || 8080;
+const baseUrl = `http://localhost:${port}`;  // Set base URL directly
 
-// Connect
+// Connect to the database
 connectDB();
 
 // Middleware
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.get('/', (req, res) => {
     res.send('Hello World');
+    // console.log(req.protocol + '://' + req.get('host') + req.originalUrl);
 });
 
 app.post('/shorten', async (req, res) => {
@@ -28,10 +30,12 @@ app.post('/shorten', async (req, res) => {
         return res.status(400).send('Missing URL');
     }
 
+    // Ensure the URL has a valid scheme
     if (!/^https?:\/\//i.test(originalUrl)) {
         originalUrl = 'http://' + originalUrl;
     }
 
+    // Validate URL (optional)
     if (!validateUrl(originalUrl)) {
         return res.status(400).send('Invalid URL');
     }
@@ -40,7 +44,7 @@ app.post('/shorten', async (req, res) => {
         // Check if already exists
         let url = await Url.findOne({ originalUrl });
         if (url) {
-            return res.json({ shortUrl: `${req.protocol}://${req.get('host')}/${url.shortId}` });
+            return res.json({ shortUrl: `${baseUrl}/${url.shortId}` });
         }
 
         // If not, create a new
@@ -50,7 +54,7 @@ app.post('/shorten', async (req, res) => {
             shortId
         });
         await url.save();
-        res.json({ shortUrl: `${req.protocol}://${req.get('host')}/${shortId}` });
+        res.json({ shortUrl: `${baseUrl}/${shortId}` });
     } catch (error) {
         console.error('Error saving to database:', error);
         res.status(500).send('Server error');
@@ -74,5 +78,5 @@ app.get('/:shortId', async (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server running at ${baseUrl}`);
 });
