@@ -8,7 +8,6 @@ import { validateUrl } from './utils/validateUrl.js';
 
 const app = express();
 const port = process.env.PORT || 8080;
-const baseUrl = `http://localhost:${port}`;  // Set base URL directly
 
 // Connect to the database
 connectDB();
@@ -44,7 +43,7 @@ app.post('/shorten', async (req, res) => {
         // Check if already exists
         let url = await Url.findOne({ originalUrl });
         if (url) {
-            return res.json({ shortUrl: `${baseUrl}/${url.shortId}` });
+            return res.json({ shortUrl: `${process.env.BASE_URL}/${url.shortId}` });
         }
 
         // If not, create a new
@@ -54,7 +53,7 @@ app.post('/shorten', async (req, res) => {
             shortId
         });
         await url.save();
-        res.json({ shortUrl: `${baseUrl}/${shortId}` });
+        res.json({ shortUrl: `${process.env.BASE_URL}/${shortId}` });
     } catch (error) {
         console.error('Error saving to database:', error);
         res.status(500).send('Server error');
@@ -78,5 +77,5 @@ app.get('/:shortId', async (req, res) => {
 
 // Start the server
 app.listen(port, () => {
-    console.log(`Server running at ${baseUrl}`);
+    console.log(`Server running at ${process.env.BASE_URL}`);
 });
