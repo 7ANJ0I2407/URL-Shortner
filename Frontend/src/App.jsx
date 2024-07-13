@@ -18,6 +18,9 @@ function App() {
         } else if (!originalUrl.startsWith('https')) {
             setAlertMessage('URL must start with "https"');
             return;
+        }else
+        {
+            setAlertMessage("First Time ? Please wait sometime till server starts.");
         }
 
         try {
