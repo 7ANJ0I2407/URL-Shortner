@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import axios from 'axios';
-import Button from '@mui/material/Button';
-import { TextField, FormControlLabel, Switch, Stack, Tooltip } from '@mui/material';
-import Card from '@mui/material/Card';
+import {
+  Button, TextField, FormControlLabel, Switch, Stack, Tooltip, Card, Box, Divider
+} from '@mui/material';
 
 function App() {
   const [originalUrl, setOriginalUrl] = useState('');
@@ -10,30 +10,19 @@ function App() {
   const [alertMessage, setAlertMessage] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [enableAnalytics, setEnableAnalytics] = useState(true);
-
-  // NEW: password toggle + value
   const [protectWithPassword, setProtectWithPassword] = useState(false);
   const [password, setPassword] = useState('');
 
   const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault();
+  const handleSubmit = useCallback(async (e) => {
+    e.preventDefault();
 
-    if (!originalUrl) {
-      setAlertMessage('URL cannot be empty.');
-      return;
-    }
-    if (!/^https:\/\//i.test(originalUrl)) {
-      setAlertMessage('URL must start with "https"');
-      return;
-    }
-    if (protectWithPassword && !password) {
-      setAlertMessage('Please enter a password or turn off password protection.');
-      return;
-    }
+    if (!originalUrl) return setAlertMessage('URL cannot be empty.');
+    if (!/^https:\/\//i.test(originalUrl)) return setAlertMessage('URL must start with "https"');
+    if (protectWithPassword && !password) return setAlertMessage('Enter a password or turn off protection.');
 
-    setAlertMessage('First time? The server may take a few seconds to wake up.');
+    setAlertMessage('First time? Server may take a few seconds to wake up.');
 
     try {
       const payload = {
@@ -42,12 +31,11 @@ function App() {
         ...(expiresAt ? { expiresAt: new Date(expiresAt + 'T23:59:59.999Z').toISOString() } : {}),
         ...(protectWithPassword && password ? { password } : {}),
       };
-
       const { data } = await axios.post(`${apiBase}/shorten`, payload);
       setShortUrl(data.shortUrl);
       setAlertMessage('');
-    } catch (error) {
-      console.error('Error creating short URL:', error);
+    } catch (err) {
+      console.error(err);
       setAlertMessage('Failed to shorten the URL. Please try again.');
     }
   }, [originalUrl, expiresAt, enableAnalytics, protectWithPassword, password, apiBase]);
@@ -55,15 +43,38 @@ function App() {
   const shortId = shortUrl ? shortUrl.split('/').pop() : '';
 
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "calc(100vh - 200px)", marginTop: "-60px", marginBottom: "-60px" }}>
-      <Card style={{ padding: "40px", width: "460px", backgroundColor: "#FEFEFF" }}>
-        <h1 style={{ textAlign: "center", marginTop: 0 }}>URL Shortener</h1>
+    <Box
+      sx={{
+        minHeight: 'calc(100vh - 160px)', // give room between header/footer
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        py: { xs: 4, md: 8 }, // top/bottom padding
+        px: 2,
+      }}
+    >
+      <Card
+        elevation={3}
+        sx={{
+          width: '100%',
+          maxWidth: 560,
+          bgcolor: '#FEFEFF',
+          px: { xs: 3, md: 5 },
+          py: { xs: 3, md: 4 },
+          borderRadius: 3,
+        }}
+      >
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <Box component="h1" sx={{ m: 0, fontSize: 34, fontWeight: 700 }}>
+            URL Shortener
+          </Box>
+        </Box>
 
-        <form onSubmit={handleSubmit}>
-          <Stack spacing={2}>
+        <Box component="form" onSubmit={handleSubmit}>
+          <Stack spacing={2.25}>
             <TextField
+              fullWidth
               label="Input URL"
-              variant="outlined"
               type="url"
               value={originalUrl}
               onChange={(e) => setOriginalUrl(e.target.value)}
@@ -71,6 +82,7 @@ function App() {
             />
 
             <TextField
+              fullWidth
               label="Expiry date (optional)"
               type="date"
               value={expiresAt}
@@ -79,48 +91,75 @@ function App() {
               helperText="Auto-expire the short URL on this date."
             />
 
+            <Divider sx={{ my: 0.5 }} />
+
             <Tooltip title="If ON, we’ll record click analytics for this link. If OFF, no analytics will be stored.">
               <FormControlLabel
-                control={<Switch checked={enableAnalytics} onChange={(e) => setEnableAnalytics(e.target.checked)} />}
+                sx={{ mx: 0 }}
+                control={
+                  <Switch
+                    checked={enableAnalytics}
+                    onChange={(e) => setEnableAnalytics(e.target.checked)}
+                  />
+                }
                 label="Enable Analytics for this URL"
               />
             </Tooltip>
 
-            {/* NEW: Password protection */}
             <Tooltip title="Require a password before redirecting to the original URL.">
               <FormControlLabel
-                control={<Switch checked={protectWithPassword} onChange={(e) => setProtectWithPassword(e.target.checked)} />}
+                sx={{ mx: 0, mt: -0.5 }}
+                control={
+                  <Switch
+                    checked={protectWithPassword}
+                    onChange={(e) => setProtectWithPassword(e.target.checked)}
+                  />
+                }
                 label="Password protect this link"
               />
             </Tooltip>
 
             <TextField
+              fullWidth
               label="Password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={!protectWithPassword}
-              helperText={protectWithPassword ? "Users must enter this password to proceed." : "Turn on password protection to enable."}
+              helperText={
+                protectWithPassword
+                  ? 'Users must enter this password to proceed.'
+                  : 'Turn on password protection to enable.'
+              }
             />
 
-            <Button variant="contained" type="submit">Shorten</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              sx={{ mt: 0.5, py: 1.2 }}
+              fullWidth
+            >
+              SHORTEN
+            </Button>
           </Stack>
-        </form>
+        </Box>
 
         {alertMessage && (
-          <div className="alert alert-danger" role="alert" style={{ textAlign: 'center', marginTop: 16 }}>
+          <Box sx={{ textAlign: 'center', mt: 2, color: 'error.main', fontSize: 14 }}>
             {alertMessage}
-          </div>
+          </Box>
         )}
 
         {shortUrl && (
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <h3 style={{ marginBottom: 8 }}>Your Shortened URL:</h3>
+          <Box sx={{ textAlign: 'center', mt: 3 }}>
+            <Box component="h3" sx={{ m: 0, mb: 1 }}>
+              Your Shortened URL:
+            </Box>
             <a href={shortUrl} target="_blank" rel="noopener noreferrer">{shortUrl}</a>
 
-            {/* QR link */}
             {shortId && apiBase && (
-              <div style={{ marginTop: 12 }}>
+              <Box sx={{ mt: 1.5 }}>
                 <a
                   href={`${apiBase}/${shortId}/qr`}
                   target="_blank"
@@ -128,12 +167,12 @@ function App() {
                 >
                   Get QR (PNG)
                 </a>
-              </div>
+              </Box>
             )}
-          </div>
+          </Box>
         )}
       </Card>
-    </div>
+    </Box>
   );
 }
 
