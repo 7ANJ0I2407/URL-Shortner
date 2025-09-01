@@ -55,15 +55,6 @@ app.use(helmet({
 }));
 app.use(morgan('combined'));
 
-const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173')
-  .split(',')
-  .map(s => s.trim());
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
