@@ -20,6 +20,34 @@ const port = process.env.PORT || 8080;
 // --- DB
 connectDB();
 
+
+// env like: CORS_ORIGINS=http://localhost:5173,https://short-url-rust-iota.vercel.app
+const rawOrigins = process.env.CORS_ORIGINS || '';
+const allowList = rawOrigins.split(',').map(s => s.trim()).filter(Boolean);
+
+// allow *.vercel.app previews too
+function corsOrigin(origin, cb) {
+  if (!origin) return cb(null, true); // allow same-origin / server-to-server
+  try {
+    const host = new URL(origin).hostname;
+    if (allowList.includes(origin) || host.endsWith('.vercel.app')) {
+      return cb(null, true);
+    }
+  } catch {}
+  return cb(new Error('Not allowed by CORS'));
+}
+
+app.use(cors({
+  origin: corsOrigin,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false // keep false unless you use cookies
+}));
+
+// Make sure OPTIONS preflight doesn’t 404
+app.options('*', cors());
+
+
 // --- Security & middleware
 app.set('trust proxy', true); // important when behind proxies (Render, Vercel)
 app.use(helmet({
